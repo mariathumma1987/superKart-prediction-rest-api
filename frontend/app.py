@@ -28,8 +28,8 @@ if app_mode == "Online Prediction":
         product_sugar_content = st.selectbox("Sugar Content", ["Low Sugar", "Regular", "No Sugar"])
         product_allocated_area = st.number_input("Allocated Display Area Ratio", min_value=0.0, max_value=1.0, value=0.05, step=0.01)
         product_type = st.selectbox("Product Category", [
-            "Dairy", "Soft Drinks", "Meat", "Fruits and Vegetables", "Household", 
-            "Baking Goods", "Snack Foods", "Frozen Foods", "Breakfast", "Health and Hygiene", 
+            "Dairy", "Soft Drinks", "Meat", "Fruits and Vegetables", "Household",
+            "Baking Goods", "Snack Foods", "Frozen Foods", "Breakfast", "Health and Hygiene",
             "Hard Drinks", "Canned Goods", "Breads", "Starchy Foods", "Others", "Seafood"
         ])
         product_mrp = st.number_input("Product MRP ($)", min_value=0.0, max_value=1000.0, value=140.0, step=1.0)
@@ -61,7 +61,7 @@ if app_mode == "Online Prediction":
         try:
             with st.spinner("Calculating sales forecast..."):
                 response = requests.post(f"{BACKEND_URL}/v1/predict", json=payload)
-            
+
             if response.status_code == 200:
                 result = response.json()
                 predicted_sales = result['Predicted Store Sales Total ($)']
@@ -84,27 +84,36 @@ else:
         # Display preview of uploaded dataset
         df_preview = pd.read_csv(uploaded_file)
         st.write("### Dataset Preview", df_preview.head(5))
-        
+
+        # Apply column renaming to match backend expectations
+        df_preview = df_preview.rename(columns={
+           "Product_Type_Category": "Product_Category_Code",
+           "Product_Id_char":  "Product_Type",
+           "Store_Age_Years" : "Store_Age"
+        })
+
         # Reset file pointer after preview
         uploaded_file.seek(0)
 
         if st.button("Generate Batch Predictions", type="primary"):
             try:
                 with st.spinner("Processing batch predictions..."):
-                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "text/csv")}
+                    # Convert the modified DataFrame back to CSV bytes for sending
+                    csv_bytes = df_preview.to_csv(index=False).encode('utf-8')
+                    files = {"file": ("batch_data.csv", csv_bytes, "text/csv")}
                     response = requests.post(f"{BACKEND_URL}/v1/predict_batch", files=files)
 
                 if response.status_code == 200:
                     res_json = response.json()
                     st.success("Batch prediction completed successfully!")
-                    
+
                     predictions = res_json['predictions']
-                    
+
                     if isinstance(predictions, dict):
                         # Convert output dictionary into a structured table
                         pred_df = pd.DataFrame(list(predictions.items()), columns=['Product_Store_ID', 'Predicted_Sales_Total'])
                         st.dataframe(pred_df, use_container_width=True)
-                        
+
                         # Download button for results
                         csv = pred_df.to_csv(index=False).encode('utf-8')
                         st.download_button(
