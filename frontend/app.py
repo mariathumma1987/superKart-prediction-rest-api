@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 
 # Base URL of the Flask backend inside the Docker network
-BACKEND_URL = "http://backend:5000"
+BACKEND_URL = "https://didactic-pancake-xrppvq5jj54j36w55-5000.app.github.dev"
 
 # Set page configuration and title
 st.set_page_config(page_title="SuperKart Sales Predictor", page_icon="🛒", layout="wide")
